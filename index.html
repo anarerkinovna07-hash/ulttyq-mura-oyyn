@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="kk"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ұлттық мұраға саяхат</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#eaf6f5;color:#123b42}
+main{max-width:780px;margin:25px auto;padding:25px;background:white;border-radius:20px;box-shadow:0 8px 25px #1245}
+h1,h2{text-align:center;color:#087e83}.sub{text-align:center;color:#90691c}
+button{border:0;border-radius:12px;padding:14px 20px;background:#087e83;color:white;font-size:17px;cursor:pointer;margin:7px}
+button:hover{background:#07585c}button:disabled{opacity:.5;cursor:default}
+input{padding:13px;border:1px solid #aaa;border-radius:10px;width:100%;font-size:17px}
+.option{display:block;width:100%;text-align:left;background:#f0f7f7;color:#123b42;border:2px solid #c5e2e2}
+.option:hover{background:#d4eeee}.correct{background:#b6e8c7!important;border-color:green}.wrong{background:#f9c4c4!important;border-color:#b22}
+.card{background:#fff7e7;border:2px solid #e5c77d;border-radius:15px;padding:16px;margin:15px 0}
+#feedback{font-weight:bold;min-height:30px}.hidden{display:none}.center{text-align:center}.score{font-weight:bold;color:#087e83}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:8px}.pair button{margin:0;font-size:15px;padding:12px}
+.selected{outline:4px solid #edb94d}.matched{background:#4b9470!important}
+.order-item{display:flex;align-items:center;justify-content:space-between;border:1px solid #ddd;padding:6px;margin:7px 0;border-radius:10px}
+.order-item button{padding:8px 12px;margin:2px}
+small{color:#576b6b}footer{text-align:center;margin-top:25px;color:#666;font-size:13px}
+</style></head><body><main>
+<div id="intro"><h1>🏠 Ұлттық мұраға саяхат</h1><p class="sub">«Ұлттық мұра – цифрлық әлемде»</p>
+<div class="card center">Төрт сандықтың құпиясын ашып, ұлттық мұра сақшысы атан!</div>
+<label for="student">Оқушының аты-жөні</label><input id="student" placeholder="Атыңызды жазыңыз">
+<p class="center"><button id="start">🎮 ОЙЫНДЫ БАСТАУ</button></p>
+<p class="center"><small>Автор: Дюсенбаева Анар Еркинқызы<br>Д. Нұрпейісова атындағы ЖОББМ</small></p></div>
+<div id="game" class="hidden"><p id="progress" class="score"></p><h2 id="heading"></h2><p id="instruction"></p><div id="area"></div><p id="feedback" aria-live="polite"></p><div class="center"><button id="check" class="hidden">Тексеру</button><button id="next" class="hidden">Келесі сандық ➜</button></div></div>
+<div id="finish" class="hidden center"><h1>🏆 ҰЛТТЫҚ МҰРА САҚШЫСЫ</h1><h2 id="result"></h2><p id="message"></p><button id="restart">🔄 Қайта ойнау</button><button id="print">🖨️ Нәтижені басып шығару</button></div>
+<footer>Ұлттық құндылықтарды бірге сақтайық!</footer>
+</main><script>
+(function(){
+const $=id=>document.getElementById(id);
+let stage=0,score=0,name='',answered=false,selectedPair=null,matched=[],order=[];
+const questions=[
+{q:'Киіз үйдің төбесіндегі дөңгелек бөлік қалай аталады?',a:['Кереге','Шаңырақ','Уық'],right:1,why:'Шаңырақ — киіз үйдің төбесіндегі негізгі бөлік.'},
+{q:'Киіз үйдің қабырғасын құрайтын торлы бөлік?',a:['Кереге','Туырлық','Түндік'],right:0,why:'Кереге киіз үйдің жиналмалы қабырғасын құрайды.'},
+{q:'Шаңырақ пен керегені жалғайтын ағаш?',a:['Бақан','Сықырлауық','Уық'],right:2,why:'Уық кереге мен шаңырақты байланыстырады.'}
+];
+const pairs=[['Домбыра','Ішекті музыкалық аспап'],['Тұсаукесер','Баланың алғашқы қадамына арналған дәстүр'],['Сәукеле','Қалыңдықтың баскиімі'],['Асық','Ұлттық ойын құралы']];
+const initialOrder=['Қонақты қарсы алу','Төрге шығару','Дастарқан жаю','Бата беру'];
+function show(id){['intro','game','finish'].forEach(x=>$(x).classList.toggle('hidden',x!==id))}
+function reset(){stage=0;score=0;name=$('student').value.trim()||'Қатысушы';show('game');render()}
+function render(){
+answered=false;$('feedback').textContent='';$('next').classList.add('hidden');$('check').classList.add('hidden');
+$('progress').textContent=`Сандық ${stage+1}/4 • Ұпай: ${score}/100`;
+$('area').innerHTML='';
+if(stage===0){$('heading').textContent='🏠 1-сандық: Киіз үй құпиясы';$('instruction').textContent='Үш сұраққа жауап беріңіз. Әр дұрыс жауап — 10 ұпай.';renderQuiz(0)}
+if(stage===1){$('heading').textContent='🎵 2-сандық: Жұбын тап';$('instruction').textContent='Сол жақтағы атауды оң жақтағы дұрыс түсіндірмемен сәйкестендіріңіз. Әр жұп — 5 ұпай.';renderPairs()}
+if(stage===2){$('heading').textContent='🧩 3-сандық: Дәстүрлер тізбегі';$('instruction').textContent='Қонақ күту кезеңдерін ретімен орналастырыңыз. Дұрыс реттілік — 20 ұпай.';order=['Дастарқан жаю','Қонақты қарсы алу','Бата беру','Төрге шығару'];renderOrder()}
+if(stage===3){$('heading').textContent='⚖️ 4-сандық: Дұрыс шешім';$('instruction').textContent='Жағдаятқа сай ең дұрыс әрекетті таңдаңыз. Дұрыс жауап — 30 ұпай.';renderScenario()}
+}
+let qi=0;
+function renderQuiz(i){qi=i;answered=false;$('area').innerHTML='<div class="card"><strong>'+questions[i].q+'</strong></div>';questions[i].a.forEach((a,j)=>{let b=document.createElement('button');b.className='option';b.textContent=String.fromCharCode(65+j)+'. '+a;b.onclick=()=>{if(answered)return;answered=true;const ok=j===questions[i].right;if(ok)score+=10;b.classList.add(ok?'correct':'wrong');$('area').querySelectorAll('button').forEach((x,k)=>{x.disabled=true;if(k===questions[i].right)x.classList.add('correct')});$('feedback').textContent=(ok?'✅ Дұрыс! ':'❌ Қате. ')+questions[i].why;$('progress').textContent=`Сандық 1/4 • Ұпай: ${score}/100`;let n=document.createElement('button');n.textContent=i<2?'Келесі сұрақ ➜':'Сандықты ашу ➜';n.onclick=()=>{if(i<2){$('feedback').textContent='';renderQuiz(i+1)}else complete()};$('area').appendChild(n)};$('area').appendChild(b)})}
+function renderPairs(){matched=[];selectedPair=null;const grid=document.createElement('div');grid.className='pair';const left=document.createElement('div'),right=document.createElement('div');pairs.forEach((p,i)=>{const b=document.createElement('button');b.textContent=p[0];b.dataset.idx=i;b.onclick=()=>choose(i,b);left.appendChild(b)});[2,0,3,1].forEach(i=>{const b=document.createElement('button');b.textContent=pairs[i][1];b.dataset.idx=i;b.onclick=()=>choose(i,b,true);right.appendChild(b)});grid.append(left,right);$('area').appendChild(grid)}
+function choose(i,b,isRight=false){if(matched.includes(i))return;if(!isRight){if(selectedPair?.b)selectedPair.b.classList.remove('selected');selectedPair={i,b};b.classList.add('selected');$('feedback').textContent='Енді оң жақтағы сәйкес түсіндірмені таңдаңыз.';return}if(!selectedPair){$('feedback').textContent='Алдымен сол жақтағы атауды таңдаңыз.';return}if(selectedPair.i===i){matched.push(i);score+=5;selectedPair.b.classList.remove('selected');selectedPair.b.classList.add('matched');b.classList.add('matched');selectedPair.b.disabled=b.disabled=true;$('feedback').textContent='✅ Дұрыс жұп!';$('progress').textContent=`Сандық 2/4 • Ұпай: ${score}/100`;if(matched.length===4)complete()}else{$('feedback').textContent='❌ Сәйкес емес. Қайта байқап көріңіз.';selectedPair.b.classList.remove('selected')}selectedPair=null}
+function renderOrder(){$('area').innerHTML='';order.forEach((item,i)=>{let row=document.createElement('div');row.className='order-item';let label=document.createElement('span');label.textContent=(i+1)+'. '+item;let ctr=document.createElement('span');['↑','↓'].forEach((sym,d)=>{let b=document.createElement('button');b.textContent=sym;b.disabled=(d===0&&i===0)||(d===1&&i===order.length-1);b.onclick=()=>{const j=i+(d===0?-1:1);[order[i],order[j]]=[order[j],order[i]];renderOrder()};ctr.appendChild(b)});row.append(label,ctr);$('area').appendChild(row)});$('check').classList.remove('hidden');$('check').onclick=()=>{if(order.every((v,i)=>v===initialOrder[i])){score+=20;$('feedback').textContent='✅ Дұрыс рет! Қонақжайлық — ұлттық құндылығымыз.';complete()}else $('feedback').textContent='❌ Реті дұрыс емес. Көрсеткілермен өзгертіп, қайта тексеріңіз.'}}
+function renderScenario(){let q=document.createElement('div');q.className='card';q.textContent='Мектептегі ұлттық мұра көрмесінде бір оқушы ескі домбыраны рұқсатсыз алып ойнамақ болды. Сіз не істейсіз?';$('area').appendChild(q);['Ештеңе демей кетемін','Домбыраны тартып аламын','Экспонатқа ұқыпты қарауды түсіндіріп, жауапты мұғалімнен рұқсат сұрауды ұсынамын'].forEach((s,i)=>{let b=document.createElement('button');b.className='option';b.textContent=s;b.onclick=()=>{if(answered)return;answered=true;if(i===2)score+=30;b.classList.add(i===2?'correct':'wrong');$('area').querySelectorAll('button').forEach((x,k)=>{x.disabled=true;if(k===2)x.classList.add('correct')});$('feedback').textContent=i===2?'✅ Дұрыс! Мұраны сақтау — ортақ міндет.':'❌ Ұлттық мұраны құрметтеп, қауіпсіз сақтауға көмектесу керек.';complete()};$('area').appendChild(b)})}
+function complete(){$('check').classList.add('hidden');$('next').classList.remove('hidden');$('next').textContent=stage===3?'Нәтижені көру 🏆':'Келесі сандық ➜';$('next').onclick=()=>{stage++;if(stage===4){show('finish');$('result').textContent=`${name}: ${score}/100 ұпай`;$('message').textContent=score>=80?'Құттықтаймыз! Сіз ұлттық мұра сақшысы атандыңыз!':'Жарайсыз! Ұлттық мұраны танып-білуді жалғастырыңыз.'}else render()}}
+$('start').addEventListener('click',reset);$('restart').addEventListener('click',()=>show('intro'));$('print').addEventListener('click',()=>window.print());
+})();
+</script></body></html>
